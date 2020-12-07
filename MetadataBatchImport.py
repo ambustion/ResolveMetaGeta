@@ -60,13 +60,14 @@ def AboutWindow():
 
     itm = win.GetItems()
 
-
+###close the about window
 def _func(ev):
     disp.ExitLoop()
 
 
     win.On.AboutWin.Close = _func
 
+###initialize main window
 dlg = disp.AddWindow({"WindowTitle": "MetadataImporter", "ID": "MyWin", "Geometry": [100, 100, 400, 200], },
                      [
                          ui.VGroup({"Spacing": .5, },
@@ -91,7 +92,7 @@ dlg = disp.AddWindow({"WindowTitle": "MetadataImporter", "ID": "MyWin", "Geometr
 itm = dlg.GetItems()
 
 
-# The window was closed
+# Close Main Window
 def _func(ev):
     disp.ExitLoop()
 
@@ -108,12 +109,9 @@ itm["FPS"].AddItem('30')
 itm["FPS"].AddItem('59.94')
 itm["FPS"].AddItem('60')
 #
-# itm["Operation"].AddItem('Add')
-# itm["Operation"].AddItem('Subtract')
-# itm["Operation"].AddItem('Multiply')
-# itm["Operation"].AddItem('Divide')
 
 
+###import focus puller metadata. Select multiple clips or single clips.
 def Select_CSVFolder():
     global Folder_Name
     global Clips
@@ -152,6 +150,8 @@ def Select_CSVFolder():
     print(MetadataList)
 
 clip_list = []
+
+###Get list of all clips in currently highlighted bin for matching.
 def Get_ClipList():
     global clip_list
     global object_List
@@ -173,42 +173,14 @@ def Get_ClipList():
     itm['ClipList']({"Text" : clip_list})
 
 
-
-#def Apply_Metadata(Bin, csv):
- #   global
-
-
-
 def Add_Metadata():
-    #print(object_List)
-    clipNames = []
-    #for obj in object_List:
-        #print(str(obj.GetClipProperty("File Name"))[:1])
     print(MetadataList)
-        
+    print(object_List)
     for x in MetadataList:   
         for y in object_List:
-        
-        
-            #print(y.GetClipProperty())
-            #list(x.GetClipProperty("Type").values())[0]
             objectStartTC = Timecode(fps,list(y.GetClipProperty("Start TC").values())[0])
             objectEndTC = Timecode(fps,list(y.GetClipProperty("End TC").values())[0])
             object_Cam = str(list(y.GetClipProperty("File Name").values())[0])[:1]
-            #print(object_Cam)
-            #object_Cam = object_Cam[:0]
-            #print(object_Cam)
-            #print(object_Cam,objectStartTC,objectEndTC)
-            #print(x[1],x[2],x[0], objectStartTC, objectEndTC, object_Cam)
-            #if x[1] <= objectStartTC:
-            #    print("objectStart tc match")
-            #elif x[2] >= objectEndTC:
-            #    print("object End tc match")
-            #if x[0] == object_Cam:
-             #   print("cam match")
-            #    y.SetMetadata('Camera #', str(x[0]))
-            #else:
-            #   print("no matches")
             if (max(x[1],objectStartTC) <= min(x[2],objectEndTC)) == True and (x[0] == object_Cam) == True:
                 print("Found a match for " + str(list(y.GetClipProperty("File Name").values())[0]))
                 y.SetMetadata('Lens Number', str(x[3]))
@@ -216,13 +188,7 @@ def Add_Metadata():
                 y.SetMetadata('Distance', str(x[5])+ " Feet")
                 y.SetMetadata('Lens Type', str(x[6]))
 
-                
-def Add_ScriptE_Metadata():
-    clipNames = []
-    for x in ScriptEMetadataList:   
-        for y in object_List:
-            print()
-
+###Currently no use but could be used to eliminate usage of Timecode module
 def Convert_toFrames(TC, FPS):
     global status_text
     if str(TC) == str(neg_error) or TC == "":
@@ -233,7 +199,7 @@ def Convert_toFrames(TC, FPS):
         itm['Result']({"Text": tc3})
         status_text = str(tc3)
 
-
+###Currently no use but could be used to eliminate usage of Timecode module
 def Convert_toTC(TC, FPS):
     global status_text
 
@@ -245,6 +211,8 @@ def Convert_toTC(TC, FPS):
         itm['Result']({"Text": tc3})
         status_text = str(tc3)
 
+###Read the scriptE XML File and create list of expected clips based on overlap of start and end time. Future versions will have an option for clip numbers, timecode or start and stop times.
+###Currently uses pandas for readability but may switch to lists or dictionaries and indexes to decrease dependencies.
 def ScriptE_XML_read(file_path):
     global Clips
     global ScriptEMetadataList
@@ -254,15 +222,11 @@ def ScriptE_XML_read(file_path):
     shotList = []
     df_cols = ["Start Date", "Start Time", "End Time", "Camera Roll", "Production Name", "Shoot Day","Camera","Description", "Comment", "Slate"]
     rows = []
-    #[StartD, StartT, EndT, roll, prodName, shootDay, scriptE, cam, descript, comment, slate]
-    prodName, shootDay, cam, slate, take, roll, clipNum, soundroll, Lens, circle, selType, complete, Comment, techComm, caption = "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""
     for shots in root.iter("ShotProperties"):
         prodName, shootDay, cam, slate, take, roll, clipNum, soundroll, Lens, circle, selType, complete, Comment, techComm, caption, descript = "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""
+        ###Metadata parsing.
         for x in shots:
-            #print(x.tag)
-            #get all items
-            #print((str(x.tag) + ": " + str(str(x.text))
-
+            ###simple cleanup of roll numbers. Need to add a bit more logic for different scenarios(ie. Roll A-2, A2, A002, 2
             if str(x.tag) == 'OriginalRoll':
                 roll = str(x.text.strip())
                 roll = roll[0] + "00" + roll[1]
@@ -302,6 +266,7 @@ def ScriptE_XML_read(file_path):
                 complete = str(x.text)
             if str(x.tag) == 'StartDateTime':
                 StartDT = str(x.text)
+                ###StartDT needs date and time split out. Not sure if scriptE always formats it this way.
                 StartD, StartT = StartDT.split(" ")
                 StartT = StartT + ":00"
                 #print(StartD, StartT)
@@ -312,56 +277,29 @@ def ScriptE_XML_read(file_path):
                 #print(EndT)
             if str(x.tag) == 'TimeCodeIn':
                 TCIn = str(x.text)
+                print(TCIn)
             if str(x.tag) == 'TimeCodeOut':
                 TCOut = str(x.text)
+                print(TCOut)
 
-                
-
-                
-            ###logic to infer clip number
-            #may want to add logic to add leading zeroes to roll and clip number.
-            #roll = roll.zfill(3)
-            #clipNum = roll.zfill(3)
-            #clipNum = ET.tostring(clipNum)
-            #print (roll, clipNum)
-            roll.strip()
+            roll.strip() ###Get rid of extra white spaces.
             clipNum.strip()
             reelname = roll + clipNum
-            #print(reelname)
-            #if circle == "Circle":
-                #circle = "Y"
-            #if selType == "DIR FAV":
-                #selType = "DIR FAV"
-            #if selType == "NG":
-                #selType = "Pink"
-            #if selType == "OK":
-                #selType = "Navy"
-            #if selType == "PIECES":
-                #selType = "Orange"
-            #scriptE = circle + " " + slate + take + " " + reelname + " " + descript + " " + Comment + " " + caption + " " + selType + " " + techComm + StartT + EndT
-            #print(scriptE)
 
-            #["Filename", "Description", "Comments", "Reel Name", "Shot","Clip Color", "Good Take", "Production Name", "Crew Comments"]
-            #shotList.append([reelname, prodName, shootDay, cam, slate, take, roll, clipNum, soundroll, Lens, circle, selType, complete, Comment, techComm, caption, descript])
-            #shotList.append([reelname, descript, Comment, reelname, caption, selType, circle, prodName, techComm])
         
-        shotList.append([StartD, TCIn, TCOut, roll, prodName, shootDay, cam, descript, Comment, slate + take, circle])
-        rows.append({"Start Date": StartD, "Start Time":StartT, "End Time":EndT, "Camera Roll": roll, "Production Name": prodName, "Shoot Day": shootDay,"Camera": cam,"Description":descript, "Comment": Comment, "Slate": slate})
-        df = pd.DataFrame(rows, columns = df_cols)
-    #print(df)
-    print(shotList)
+        shotList.append([StartD, StartT, EndT, roll, prodName, shootDay, cam, descript, Comment, slate + "-" + take, circle])
+
+    ###Split clips into A and B lists. No need for this is we do matching based on Cam in list with an if statement. Will get rid of this.
     clipsA_startTC = []
     clipsB_startTC = []
     for x in Clips:
         name =  list(x.GetClipProperty("Clip Name").values())[0]
         camera = str(name)[:1]
-        #print(camera)
         if camera == "A":
             clipsA_startTC.append(Timecode(fps,list(x.GetClipProperty("Start TC").values())[0]).frames)
         elif camera == "B":
             clipsB_startTC.append(Timecode(fps,list(x.GetClipProperty("Start TC").values())[0]).frames)
 
-    #print(clips_startTC)
     shotListA = []
     shotListB = []
     shotListOther = []
@@ -372,9 +310,14 @@ def ScriptE_XML_read(file_path):
             shotListB.append(x)
         else:
             shotListOther.append(x)
-    print("ShotListA" + str(shotListA) ) 
+    FirstCamTC = Timecode(fps,frames=min(clipsA_startTC))
+    FirstScriptETC = Timecode(fps,min(shotList, key=lambda x: x[1])[1])
+    TimeAdjust = FirstScriptETC - FirstCamTC
+    
+    #print(str(TimeAdjust) + " is the adjusted start time")
+    ###match tod tc to closest start time from ScriptE. If clip numbers were present this would be more accurate. 
     for i in shotListA:
-        if len(clipsA_startTC) > 0:    
+        if len(clipsA_startTC) > 0:
             Matched_TC = min(clipsA_startTC, key=lambda x:abs(x-Timecode(fps,i[1]).frames))
             print("There are shots in A")
             i[1] = Timecode(fps, frames=Matched_TC)
@@ -383,8 +326,6 @@ def ScriptE_XML_read(file_path):
     for x in shotListA:
         for y in Clips:
             Cam_num = str(list(y.GetClipProperty("Clip Name").values())[0])[:1]
-            #print(Cam_num)
-            #print(x[1])
             if x[1] == list(y.GetClipProperty("Start TC").values())[0] and Cam_num == "A":
                 print("found a match at " + str(x[1]))
                 y.SetMetadata('Production Name', str(x[4]))
@@ -401,9 +342,6 @@ def ScriptE_XML_read(file_path):
             Matched_TC = min(clipsB_startTC, key=lambda x:abs(x-Timecode(fps,i[1]).frames))
             print("There are shots in B")
             i[1] = Timecode(fps, frames=Matched_TC)
-
-
-    #print(shotListB)
     
     for x in shotListB:
         for y in Clips:
@@ -418,11 +356,6 @@ def ScriptE_XML_read(file_path):
                 y.SetMetadata('Shot Type', str(x[10]))
                 y.SetMetadata('Shot', str(x[9]))
 
-                
-
-
-    
-
 Get_ClipList()
 itm['ClipList'].Text = "clips to append metadata to: " + str(clip_list)
 
@@ -434,11 +367,7 @@ def _func(ev):
     print("finished")
     itm['Status'].Text = "Finished"
 
-
-
-
 dlg.On.PrintButton.Clicked = _func
-
 
 def _func(ev):
     root = Tk()
@@ -454,50 +383,10 @@ def _func(ev):
     print("finished")
     itm['Status'].Text = "Finished"
 
-
-
 dlg.On.ScriptEButton.Clicked = _func
 
-
-# def _func(ev):
-#	print(itm['TC2'].Text)
-# dlg.On.PrintButton.Clicked = _func
-
-# def _func(ev):
-#     if str(itm['TC1'].Text)[-1] not in ('0123456789:'):
-#         itm['TC1'].Text = itm['TC1'].Text[:-1]
-#     print(str(itm['TC1'].Text))
-#     if len(itm['TC1'].Text) > 11:
-#         itm['TC1'].Text = itm['TC1'].Text[:-1]
-#
-#     my_str = re.sub('[:]', '', itm['TC1'].Text)
-#     # my_str = re.sub('[;]', '', values['tc1'])
-#     my_str = ':'.join([my_str[i:i + 2] for i in range(0, len(my_str), 2)])
-#     # my_str = ';'.join([my_str[i:i + 2] for i in range(0, len(my_str), 2)])
-#     itm['TC1'].Text = str(my_str)
-
-
-# print(my_str)
-
-
-# dlg.On.TC1.TextChanged = _func
-#
-#
-# def _func(ev):
-#     if str(itm['TC1'].Text)[-1] not in ('0123456789'):
-#         itm['TC1'].Text = itm['TC1'].Text[:-1]
-#
-#
-# dlg.On.Alt.TextChanged = _func
-
-
 def _func(ev):
-    ## Close the current main window
-    # dlg.Hide()
-
-    ## Display an "About dialog" window
     AboutWindow()
-
 
 dlg.On.AboutDialogButton.Clicked = _func
 
